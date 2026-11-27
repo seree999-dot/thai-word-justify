@@ -3,5 +3,6 @@ __pycache__/
 *.docx
 *.pdf
 *.png
+!assets/before_after.png
 .DS_Store
 Thumbs.db

@@ -12,12 +12,20 @@ description: >-
 
 Format Thai Microsoft Word (`.docx`) documents so left and right margins (กั้นหน้า–กั้นหลัง) align cleanly without stretched spaces or broken syllables. This skill contains pure instructions and OOXML specifications with no external scripts required.
 
+## Thai Layout Presets
+
+| Preset | Margins (L / R / T / B cm) | Printable Width | Body Font & Indent | Page Numbers |
+| :--- | :--- | :--- | :--- | :--- |
+| `proposal` *(default)* | `3.0 / 2.0 / 2.5 / 2.0` | `16.0 cm` | `TH Sarabun New 16pt`, indent `1.25 cm` | Footer center (`หน้า X / Y`) |
+| `official` (หนังสือราชการ) | `3.0 / 2.0 / 2.5 / 2.0` | `16.0 cm` | `TH Sarabun New 16pt`, indent `1.25 cm` | Header right (Thai numerals `๐–๙` optional) |
+| `academic` (รายงาน/วิทยานิพนธ์) | `3.81 / 2.54 / 2.54 / 2.54` | `14.65 cm` | `TH Sarabun New 16pt`, indent `1.25 cm` | Header right |
+
 ## Core Specification
 
-1. **Page Geometry (A4 Official Thai Standard)**:
+1. **Page Geometry (A4 Thai Standards)**:
    - Paper size: `21.0 × 29.7 cm` (A4).
-   - Margins: Top `2.5 cm`, Bottom `2.0 cm`, Left / กั้นหน้า `3.0 cm`, Right / กั้นหลัง `2.0 cm`.
-   - Net printable content width: **`16.0 cm`** (`9072 dxa`).
+   - Default `proposal` / `official` margins: Top `2.5 cm`, Bottom `2.0 cm`, Left / กั้นหน้า `3.0 cm`, Right / กั้นหลัง `2.0 cm` → printable width **`16.0 cm`** (`9072 dxa`).
+   - `academic` margins: Left `3.81 cm`, Right/Top/Bottom `2.54 cm` → printable width **`14.65 cm`** (`8307 dxa`).
    - Header / Footer distance: `1.25 cm`.
 
 2. **Typography & Complex Script Language Tagging**:
@@ -36,24 +44,24 @@ Format Thai Microsoft Word (`.docx`) documents so left and right margins (กั
    - If `pythainlp` is not available, rely on native MS Word Thai justification via `<w:lang w:val="en-US" w:bidi="th-TH"/>` + `<w:jc w:val="thaiDistribute"/>` (and place `\u200b` between Thai word boundaries in long clauses when helpful).
 
 5. **Tables & Dynamic Page Numbers**:
-   - Set `<w:tblLayout w:type="fixed"/>` and total `<w:tblW>` equal to `16.0 cm` (`9072 dxa`) so tables align flush with both margins.
+   - Set `<w:tblLayout w:type="fixed"/>` and total `<w:tblW>` equal to the preset printable width (`16.0 cm` / `9072 dxa`, or `14.65 cm` / `8307 dxa`) so tables align flush with both margins without overflowing.
    - Add `<w:tblHeader/>` on row 0 to repeat table headers across page breaks, and `<w:cantSplit/>` on every row.
-   - Add a centered footer with `PAGE` / `NUMPAGES` Word fields (`หน้า X / Y`).
+   - Add a centered footer (`proposal`) or right-aligned header (`official` / `academic`) with `PAGE` / `NUMPAGES` Word fields.
 
-For complete OpenXML tag snippets and troubleshooting patterns, read [ooxml-thai-guide.md](./references/ooxml-thai-guide.md).
+For complete OpenXML tag snippets, troubleshooting patterns, and a copy-ready inline `python-docx` helper, read [ooxml-thai-guide.md](./references/ooxml-thai-guide.md).
 
 ## Execution Modes
 
-- **Mode A — Python / `python-docx` available in session**: Build or update the `.docx` inline following the Core Specification and OOXML reference in [ooxml-thai-guide.md](./references/ooxml-thai-guide.md).
-- **Mode B — Pure text/chat mode without code execution**: Draft the Thai content structured cleanly for Word import (marking headings, indented paragraphs, callouts, and tables) and provide the user with exact Word setup values: A4, margins Left `3.0 cm` / Right `2.0 cm` / Top `2.5 cm` / Bottom `2.0 cm`, font `TH Sarabun New 16pt`, paragraph alignment **Thai Distributed** (กระจายแบบไทย), and Proofing Language **Thai**.
+- **Mode A — Python / `python-docx` available in session**: Build or update the `.docx` inline using the copy-ready helper and OOXML specs in [ooxml-thai-guide.md](./references/ooxml-thai-guide.md).
+- **Mode B — Pure text/chat mode without code execution**: Draft the Thai content structured cleanly for Word import (marking headings, indented paragraphs, callouts, and tables) and provide the user with exact Word setup values: A4, preset margins (e.g., Left `3.0 cm` / Right `2.0 cm` / Top `2.5 cm` / Bottom `2.0 cm`), font `TH Sarabun New 16pt`, paragraph alignment **Thai Distributed** (กระจายแบบไทย), and Proofing Language **Thai**.
 
 ## Self-Audit Checklist
 
 Verify all 6 items before delivering any `.docx` or formatting output:
 
-1. Paper is A4 (`21.0 × 29.7 cm`) with Left `3.0 cm` (กั้นหน้า) and Right `2.0 cm` (กั้นหลัง).
+1. Paper is A4 (`21.0 × 29.7 cm`) with Left `3.0 cm` (or `3.81 cm` academic) and Right `2.0 cm` (or `2.54 cm`).
 2. `TH Sarabun New` is set on `w:cs` with matching `w:szCs` and `<w:lang w:val="en-US" w:bidi="th-TH"/>`.
 3. Body prose, callouts, and multi-line bullets use `THAI_JUSTIFY` (`thaiDistribute`), while headings and table cells use `LEFT`.
 4. No Thai text contains duplicate `\u200b\u200b` or `\u200b` immediately before `ๆ` / `ฯ`.
-5. Every table uses fixed layout summing to `16.0 cm` with `w:tblHeader` and `w:cantSplit`.
-6. Footer displays dynamic page numbers (`หน้า X / Y`).
+5. Every table uses fixed layout summing to the printable width (`<= 16.0 cm` or `<= 14.65 cm`) with `w:tblHeader` and `w:cantSplit`.
+6. Page numbers match the selected preset (`หน้า X / Y` footer or right-aligned header).
