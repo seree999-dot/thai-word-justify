@@ -4,9 +4,9 @@ description: >-
   Format and audit Microsoft Word (.docx) documents for publication-grade Thai
   margins, แบบที่ 1 hierarchical numbering, and justification (กั้นหน้า–กั้นหลัง,
   thaiDistribute / THAI_JUSTIFY, A4 3.0/2.0 cm margins, TH Sarabun New 16pt,
-  1. / 1.1 / 1.1.1 / 1.1.2.1 / 1) cascading indents, w:bidi="th-TH", and Thai
-  word-break ZWSP). Use when creating, fixing, or polishing Thai Word documents
-  whose right margin or numbering looks uneven.
+  1. / 1.1 / 1.1.1 / 1.1.2.1 / 1) cascading indents, w:bidi="th-TH", Thai
+  word-break ZWSP), then upload to Google Drive and deliver a downloadable
+  .docx file. Use when creating, fixing, or polishing Thai Word documents.
 ---
 
 # Thai Word Justify
@@ -84,14 +84,14 @@ For complete OpenXML tag snippets and the copy-ready inline `python-docx` helper
 - **Mode A — Python / `python-docx` available in session**: Always run the inline `python-docx` builder from [ooxml-thai-guide.md](./references/ooxml-thai-guide.md) to generate the actual `.docx` file on disk (never stop at pasting raw code).
 - **Mode B — Pure text/chat mode without any file or code execution**: Clearly state that code/file generation is unavailable in this chat session, provide the Thai content structured cleanly with **แบบที่ 1** numbering (`1.  `, `1.1  `, `1.1.1  `, `1.1.2.1  `, `1)  `), and give exact Word setup values: A4, Left `3.0 cm` / Right `2.0 cm`, `TH Sarabun New`, Thai Distributed, and Proofing Language Thai.
 
-## Final Step: Deliver Downloadable `.docx` File (ขั้นตอนสุดท้าย — แสดงไฟล์ `.docx` ให้ดาวน์โหลดได้ทันที)
+## Final Step: Upload to Google Drive & Deliver Downloadable `.docx` (ขั้นตอนสุดท้าย — ส่งไฟล์ไปยัง Google Drive และให้ดาวน์โหลดได้ทันที)
 
 Whenever code execution or file output tools are available:
 
 1. **Generate & verify**: Save the `.docx` file to the session output/workspace directory and confirm the file exists with a non-zero byte size (`> 0` bytes).
-2. **Present immediately at the end of your reply**: Display a prominent downloadable Microsoft Word (`.docx`) file link/card right in your final message, including:
-   - Exact filename and clickable download/file link (in Gemini Chat: surface the generated `.docx` download artifact/link directly; in Antigravity/local workspace: `[<filename>.docx](file:///<absolute_path>)`).
-   - File size in bytes/KB and a 1-line summary confirming `แบบที่ 1` numbering, `TH Sarabun New`, `3.0 / 2.0 cm` margins, and `thaiDistribute`.
+2. **Upload to Google Drive**: Upload the `.docx` file directly to the user's **Google Drive** (into the requested folder or My Drive root), preserving the native `.docx` file format so `thaiDistribute`, `w:bidi="th-TH"`, and `TH Sarabun New` remain intact. Keep default private access unless the user explicitly asks to share.
+3. **Present immediately at the end of your reply**: Display BOTH the clickable **Google Drive link** and the **immediately downloadable `.docx` file** right in your final message, including filename, file size in bytes/KB, and a 1-line summary confirming `แบบที่ 1` numbering, `TH Sarabun New`, `3.0 / 2.0 cm` margins, and `thaiDistribute`.
+4. **Fallback if Google Drive is unavailable**: If Google Drive integration is not connected or authorized in the current chat session, still deliver the downloadable `.docx` file immediately and clearly note that Google Drive can be connected for automatic upload.
 
 ## Self-Audit Checklist
 
@@ -101,4 +101,4 @@ Whenever code execution or file output tools are available:
 4. Body prose uses `THAI_JUSTIFY` (`1.0 cm` indent under `1.`, `2.0 cm` indent under `1.1`+).
 5. No duplicate `\u200b\u200b`, no `\u200b` before `ๆ` / `ฯ`, and every table fits within printable width (`<= 16.0 cm`).
 6. Page numbers match the selected preset.
-7. The final Microsoft Word (`.docx`) file is generated, non-empty, and presented as a direct downloadable file/link to the user.
+7. The final Microsoft Word (`.docx`) file is generated, non-empty, uploaded to Google Drive (when connected), and presented with both the Google Drive link and downloadable `.docx` file/link.

@@ -5,8 +5,9 @@ description: >-
   margins, แบบที่ 1 hierarchical numbering, and justification (กั้นหน้า–กั้นหลัง,
   thaiDistribute / THAI_JUSTIFY, A4 3.0/2.0 cm margins, TH Sarabun New 16pt,
   1. / 1.1 / 1.1.1 / 1.1.2.1 / 1) cascading indents, w:bidi="th-TH", Thai
-  word-break ZWSP, and visual QA via MS Word or LibreOffice). Use when creating,
-  fixing, or polishing Thai Word documents whose right margin or numbering looks uneven.
+  word-break ZWSP, and visual QA via MS Word or LibreOffice), then upload to
+  Google Drive and deliver a downloadable .docx file. Use when creating,
+  fixing, or polishing Thai Word documents.
 ---
 
 # Thai Word Justify
@@ -74,9 +75,10 @@ pip install -r requirements.txt
    ```bash
    python scripts/render_docx_to_png.py output.docx ./preview_png --dpi 150
    ```
-5. **Deliver the downloadable `.docx` file (Mandatory — ขั้นตอนสุดท้าย)**:
+5. **Upload to Google Drive & Deliver `.docx` (Mandatory — ขั้นตอนสุดท้าย)**:
    - Verify the saved `.docx` file exists with non-zero byte size (`> 0` bytes).
-   - Present a prominent, immediately clickable/downloadable Microsoft Word (`.docx`) file link at the end of your reply (e.g., `[<filename>.docx](file:///<absolute_path>)` in local/Antigravity workspaces, or the generated `.docx` download artifact/link in chat environments), along with its file size and audit summary (`ALL CHECKS PASSED`).
+   - Upload the native `.docx` file directly to **Google Drive** via the connected Google Drive integration / `gdrive` skill (preserving `.docx` format so Thai `thaiDistribute` and `TH Sarabun New` remain intact, and keeping default private sharing unless the user explicitly asks to share).
+   - Present BOTH the clickable **Google Drive link** and the clickable local `.docx` link (`[<filename>.docx](file:///<absolute_path>)`) at the end of your reply, along with file size and audit summary (`ALL CHECKS PASSED`). If Google Drive is not connected, deliver the local `.docx` link and remind the user to sign in to Google Drive if they want automatic upload.
 
 ## CLI Usage
 
