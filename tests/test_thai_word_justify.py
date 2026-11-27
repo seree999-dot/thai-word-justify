@@ -52,6 +52,51 @@ class TestThaiWordJustify(unittest.TestCase):
             14.65,
         )
 
+    def test_heading_hierarchy_levels(self):
+        doc = Document()
+        twj.configure_thai_a4_margins(doc)
+        p_t = twj.add_thai_heading(doc, "ข้อเสนอโครงการ", level="title")
+        p_1 = twj.add_thai_heading(doc, "1. ความเป็นมา", level="h1")
+        p_2 = twj.add_thai_heading(doc, "1.1 วัตถุประสงค์", level="h2")
+        p_3 = twj.add_thai_heading(doc, "1.1.1 ด้านงบประมาณ", level="h3", italic=True)
+
+        self.assertEqual(p_t.alignment, WD_ALIGN_PARAGRAPH.CENTER)
+        self.assertEqual(p_t.runs[0].font.size.pt, 20.0)
+        self.assertTrue(p_t.runs[0].bold)
+
+        self.assertEqual(p_1.alignment, WD_ALIGN_PARAGRAPH.LEFT)
+        self.assertEqual(p_1.runs[0].font.size.pt, 18.0)
+        self.assertIsNone(p_1.paragraph_format.left_indent)
+
+        self.assertEqual(p_2.alignment, WD_ALIGN_PARAGRAPH.LEFT)
+        self.assertEqual(p_2.runs[0].font.size.pt, 16.0)
+        self.assertAlmostEqual(p_2.paragraph_format.left_indent.cm, 0.75, places=2)
+
+        self.assertEqual(p_3.alignment, WD_ALIGN_PARAGRAPH.LEFT)
+        self.assertEqual(p_3.runs[0].font.size.pt, 16.0)
+        self.assertTrue(p_3.runs[0].italic)
+        self.assertAlmostEqual(p_3.paragraph_format.left_indent.cm, 1.5, places=2)
+
+        with tempfile.TemporaryDirectory() as tmp:
+            raw_path = Path(tmp) / "raw_h.docx"
+            fixed_path = Path(tmp) / "fixed_h.docx"
+            d2 = Document()
+            d2.add_paragraph("บทที่ 1 บทนำ")
+            d2.add_paragraph("1. ความเป็นมา")
+            d2.add_paragraph("1.1 วัตถุประสงค์")
+            d2.add_paragraph("1.1.1 ด้านงบประมาณ")
+            d2.add_paragraph("เนื้อหาปกติที่มีความยาวเพียงพอสำหรับการจัดแนวแบบกั้นหน้าและกั้นหลังให้สวยงาม")
+            d2.save(str(raw_path))
+            twj.fix_existing_docx(raw_path, fixed_path)
+            df = Document(str(fixed_path))
+            self.assertEqual(df.paragraphs[0].alignment, WD_ALIGN_PARAGRAPH.CENTER)
+            self.assertEqual(df.paragraphs[0].runs[0].font.size.pt, 20.0)
+            self.assertEqual(df.paragraphs[1].runs[0].font.size.pt, 18.0)
+            self.assertEqual(df.paragraphs[2].runs[0].font.size.pt, 16.0)
+            self.assertAlmostEqual(df.paragraphs[2].paragraph_format.left_indent.cm, 0.75, places=2)
+            self.assertEqual(df.paragraphs[3].runs[0].font.size.pt, 16.0)
+            self.assertAlmostEqual(df.paragraphs[3].paragraph_format.left_indent.cm, 1.5, places=2)
+
     def test_fix_and_check_pass(self):
         with tempfile.TemporaryDirectory() as tmp:
             raw_path = Path(tmp) / "raw.docx"

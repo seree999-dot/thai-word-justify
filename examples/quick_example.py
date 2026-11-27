@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
 Minimal standalone example creating a publication-grade Thai A4 .docx
-with thai-word-justify.
+demonstrating the Thai Typography Hierarchy (Title / H1 / H2 / H3 / Body)
+and 16.0 cm table with thai-word-justify.
 """
 
 import sys
@@ -16,6 +17,7 @@ SKILL_SCRIPTS = Path(__file__).resolve().parent.parent / "scripts"
 sys.path.insert(0, str(SKILL_SCRIPTS))
 
 from thai_word_justify import (  # noqa: E402
+    add_thai_heading,
     add_thai_page_number_footer,
     apply_thai_run_style,
     configure_thai_a4_margins,
@@ -33,11 +35,10 @@ def main():
     )
     add_thai_page_number_footer(doc.sections[0], footer_text="เอกสารตัวอย่างภาษาไทย (TH Sarabun New)")
 
-    h1 = doc.add_paragraph()
-    h1.alignment = WD_ALIGN_PARAGRAPH.LEFT
-    h1.paragraph_format.keep_with_next = True
-    h1.paragraph_format.space_after = Pt(6)
-    apply_thai_run_style(h1.add_run(insert_thai_zwsp_clean("1. ตัวอย่างการจัดกั้นหน้า–กั้นหลังภาษาไทย")), size_pt=18, bold=True, color_hex="#1E2761")
+    add_thai_heading(doc, "ข้อเสนอโครงการพัฒนาระบบติดตามการฝึกงาน", level="title", color_hex="#1E2761")
+    add_thai_heading(doc, "1. ความเป็นมาและความสำคัญ", level="h1", color_hex="#1E2761")
+    add_thai_heading(doc, "1.1 วัตถุประสงค์ของโครงการ", level="h2", color_hex="#1E2761")
+    add_thai_heading(doc, "1.1.1 ด้านงบประมาณและทรัพยากร", level="h3", italic=False, color_hex="#1E2761")
 
     body_text = (
         "การจัดทำเอกสารภาษาไทยใน Microsoft Word จำเป็นต้องตั้งค่าระยะขอบมาตรฐานเอสี่ "

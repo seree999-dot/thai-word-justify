@@ -2,7 +2,8 @@
 """
 thai_word_justify.py — Library and CLI for Thai Microsoft Word (.docx)
 margins (กั้นหน้า-กั้นหลัง), thaiDistribute justification, w:bidi="th-TH",
-TH Sarabun New complex-script styling, presets, page numbering, fixing, and auditing.
+TH Sarabun New complex-script styling, Thai heading hierarchy, presets,
+page numbering, fixing, and auditing.
 """
 
 import argparse
@@ -19,6 +20,67 @@ from docx.oxml.ns import nsdecls, qn
 ZWS = "\u200b"
 _THAI_RUN_RE = re.compile(r"([\u0E00-\u0E7F]+)")
 _ARABIC_TO_THAI = str.maketrans("0123456789", "๐๑๒๓๔๕๖๗๘๙")
+
+TYPOGRAPHY_HIERARCHY: dict[str, dict] = {
+    "title": {
+        "label": "ชื่อเรื่อง / ชื่อบท",
+        "size_pt": 20.0,
+        "min_pt": 18.0,
+        "max_pt": 20.0,
+        "bold": True,
+        "italic": False,
+        "align": "CENTER",
+        "indent_cm": 0.0,
+        "space_before_pt": 0.0,
+        "space_after_pt": 8.0,
+    },
+    "h1": {
+        "label": "หัวข้อหลัก (ระดับที่ 1)",
+        "size_pt": 18.0,
+        "min_pt": 16.0,
+        "max_pt": 18.0,
+        "bold": True,
+        "italic": False,
+        "align": "LEFT",
+        "indent_cm": 0.0,
+        "space_before_pt": 12.0,
+        "space_after_pt": 4.0,
+    },
+    "h2": {
+        "label": "หัวข้อรอง (ระดับที่ 2)",
+        "size_pt": 16.0,
+        "min_pt": 16.0,
+        "max_pt": 16.0,
+        "bold": True,
+        "italic": False,
+        "align": "LEFT",
+        "indent_cm": 0.75,
+        "space_before_pt": 8.0,
+        "space_after_pt": 3.0,
+    },
+    "h3": {
+        "label": "หัวข้อย่อย (ระดับที่ 3)",
+        "size_pt": 16.0,
+        "min_pt": 16.0,
+        "max_pt": 16.0,
+        "bold": True,
+        "italic": False,
+        "align": "LEFT",
+        "indent_cm": 1.5,
+        "space_before_pt": 6.0,
+        "space_after_pt": 2.0,
+    },
+    "body": {
+        "label": "เนื้อหาปกติ",
+        "size_pt": 16.0,
+        "min_pt": 16.0,
+        "max_pt": 16.0,
+        "bold": False,
+        "italic": False,
+        "align": "THAI_JUSTIFY",
+        "first_line_indent_cm": 1.25,
+    },
+}
 
 PRESETS: dict[str, dict] = {
     "proposal": {
@@ -136,6 +198,55 @@ def apply_thai_run_style(
 def set_thai_justify(paragraph):
     """Set paragraph alignment to Thai Distributed (thaiDistribute / THAI_JUSTIFY)."""
     paragraph.alignment = WD_ALIGN_PARAGRAPH.THAI_JUSTIFY
+
+
+def add_thai_heading(
+    doc,
+    text: str,
+    level: str = "h1",
+    size_pt: float | None = None,
+    indent_cm: float | None = None,
+    italic: bool | None = None,
+    bold: bool | None = None,
+    color_hex: str = "#202124",
+    font_name: str = "TH Sarabun New",
+):
+    """
+    Add a Thai heading enforcing standard typography hierarchy:
+    - title: 18-20 pt (default 20), bold, CENTER
+    - h1:    16-18 pt (default 18), bold, LEFT (indent 0 cm)
+    - h2:    16 pt, bold, LEFT or 1-level indent (default 0.75 cm)
+    - h3:    16 pt, bold or italic (default bold=True), deeper indent (default 1.5 cm)
+    """
+    lvl = level.lower()
+    if lvl not in ("title", "h1", "h2", "h3"):
+        raise ValueError(f"Unsupported heading level '{level}'. Expected one of: title, h1, h2, h3.")
+    cfg = TYPOGRAPHY_HIERARCHY[lvl]
+
+    eff_size = cfg["size_pt"] if size_pt is None else float(size_pt)
+    eff_indent = cfg["indent_cm"] if indent_cm is None else float(indent_cm)
+    eff_italic = cfg["italic"] if italic is None else bool(italic)
+    eff_bold = (not eff_italic if lvl == "h3" and italic is True and bold is None else cfg["bold"]) if bold is None else bool(bold)
+
+    p = doc.add_paragraph()
+    p.alignment = WD_ALIGN_PARAGRAPH.CENTER if cfg["align"] == "CENTER" else WD_ALIGN_PARAGRAPH.LEFT
+    p.paragraph_format.keep_with_next = True
+    p.paragraph_format.line_spacing = 1.15
+    p.paragraph_format.space_before = Pt(cfg["space_before_pt"])
+    p.paragraph_format.space_after = Pt(cfg["space_after_pt"])
+    if eff_indent > 0:
+        p.paragraph_format.left_indent = Cm(eff_indent)
+
+    run = p.add_run(insert_thai_zwsp_clean(text))
+    apply_thai_run_style(
+        run,
+        size_pt=eff_size,
+        bold=eff_bold,
+        italic=eff_italic,
+        color_hex=color_hex,
+        font_name=font_name,
+    )
+    return p
 
 
 def configure_thai_a4_margins(
@@ -295,13 +406,23 @@ def _run_has_only_text(run) -> bool:
     )
 
 
-def _is_heading_paragraph(p) -> bool:
+def _detect_heading_level(p) -> str | None:
     style_name = (p.style.name if p.style else "") or ""
-    if "Heading" in style_name or "Title" in style_name or "Subtitle" in style_name:
-        return True
-    if p.runs and all(r.bold for r in p.runs if r.text.strip()) and len(p.text.strip()) < 90:
-        return True
-    return False
+    text = p.text.replace(ZWS, "").strip()
+
+    if "Title" in style_name or re.match(r"^บทที่\s+\S", text):
+        return "title"
+    if p.alignment == WD_ALIGN_PARAGRAPH.CENTER and len(text) < 90 and p.runs and all(r.bold for r in p.runs if r.text.strip()):
+        return "title"
+    if "Heading 3" in style_name or (re.match(r"^\d+\.\d+\.\d+\s+\S", text) and len(text) < 110):
+        return "h3"
+    if "Heading 2" in style_name or (re.match(r"^\d+\.\d+\s+\S", text) and len(text) < 110):
+        return "h2"
+    if "Heading 1" in style_name or "Heading" in style_name or (re.match(r"^\d+\.\s+\S", text) and len(text) < 110):
+        return "h1"
+    if p.runs and all(r.bold for r in p.runs if r.text.strip()) and len(text) < 90:
+        return "h1"
+    return None
 
 
 def fix_existing_docx(
@@ -320,8 +441,8 @@ def fix_existing_docx(
 ) -> Path:
     """
     Upgrade an existing .docx file with Thai A4 margins, thaiDistribute alignment
-    on body prose, w:bidi='th-TH', TH Sarabun New complex script fonts, clean ZWS,
-    fixed-width tables matching the printable width, and optional preset layout.
+    on body prose, Thai heading hierarchy (title/h1/h2/h3), w:bidi='th-TH',
+    TH Sarabun New complex script fonts, clean ZWS, and fixed-width tables.
     """
     cfg = PRESETS.get(preset, PRESETS["proposal"])
     top_v = cfg["top"] if top is None else top
@@ -347,12 +468,17 @@ def fix_existing_docx(
         if not raw_text:
             continue
 
-        is_heading = _is_heading_paragraph(p)
+        h_level = _detect_heading_level(p)
         is_centered = p.alignment == WD_ALIGN_PARAGRAPH.CENTER
 
-        if is_heading:
-            p.alignment = WD_ALIGN_PARAGRAPH.LEFT
+        if h_level is not None:
+            h_cfg = TYPOGRAPHY_HIERARCHY[h_level]
+            p.alignment = WD_ALIGN_PARAGRAPH.CENTER if h_cfg["align"] == "CENTER" else WD_ALIGN_PARAGRAPH.LEFT
             p.paragraph_format.keep_with_next = True
+            p.paragraph_format.line_spacing = 1.15
+            p.paragraph_format.first_line_indent = Cm(0)
+            if h_cfg["indent_cm"] > 0:
+                p.paragraph_format.left_indent = Cm(h_cfg["indent_cm"])
         elif not is_centered and len(raw_text) >= 40:
             set_thai_justify(p)
             p.paragraph_format.line_spacing = 1.15
@@ -365,12 +491,21 @@ def fix_existing_docx(
                 if thai_numerals:
                     updated = to_thai_numerals(updated)
                 run.text = updated
-            cur_size = run.font.size.pt if run.font.size else (18 if is_heading else size_v)
+            if h_level is not None:
+                h_cfg = TYPOGRAPHY_HIERARCHY[h_level]
+                cur_size = h_cfg["size_pt"]
+                eff_italic = bool(run.italic) if h_level == "h3" else False
+                eff_bold = (not eff_italic) if (h_level == "h3" and eff_italic and not run.bold) else True
+            else:
+                cur_size = run.font.size.pt if run.font.size else size_v
+                eff_bold = run.bold
+                eff_italic = run.italic
+
             apply_thai_run_style(
                 run,
                 size_pt=cur_size,
-                bold=run.bold,
-                italic=run.italic,
+                bold=eff_bold,
+                italic=eff_italic,
                 color_hex=None,
                 font_name=font_name,
             )
@@ -555,7 +690,7 @@ def main():
     parser = argparse.ArgumentParser(description="Thai Microsoft Word (.docx) justification tool")
     sub = parser.add_subparsers(dest="command", required=True)
 
-    p_fix = sub.add_parser("fix", help="Fix margins, thaiDistribute, w:bidi, and ZWS on an existing .docx")
+    p_fix = sub.add_parser("fix", help="Fix margins, thaiDistribute, headings, w:bidi, and ZWS on an existing .docx")
     p_fix.add_argument("input", help="Input .docx path")
     p_fix.add_argument("-o", "--output", required=True, help="Output .docx path")
     p_fix.add_argument("--preset", choices=sorted(PRESETS.keys()), default="proposal", help="Thai layout preset")
