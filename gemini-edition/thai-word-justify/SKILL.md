@@ -81,8 +81,17 @@ For complete OpenXML tag snippets and the copy-ready inline `python-docx` helper
 
 ## Execution Modes
 
-- **Mode A — Python / `python-docx` available in session**: Build or update the `.docx` inline using the helper in [ooxml-thai-guide.md](./references/ooxml-thai-guide.md).
-- **Mode B — Pure text/chat mode without code execution**: Draft the Thai content following exact **แบบที่ 1** numbering (`1.  `, `1.1  `, `1.1.1  `, `1.1.2.1  `, `1)  `) and provide exact Word setup values: A4, Left `3.0 cm` / Right `2.0 cm`, `TH Sarabun New`, Thai Distributed, and Proofing Language Thai.
+- **Mode A — Python / `python-docx` available in session**: Always run the inline `python-docx` builder from [ooxml-thai-guide.md](./references/ooxml-thai-guide.md) to generate the actual `.docx` file on disk (never stop at pasting raw code).
+- **Mode B — Pure text/chat mode without any file or code execution**: Clearly state that code/file generation is unavailable in this chat session, provide the Thai content structured cleanly with **แบบที่ 1** numbering (`1.  `, `1.1  `, `1.1.1  `, `1.1.2.1  `, `1)  `), and give exact Word setup values: A4, Left `3.0 cm` / Right `2.0 cm`, `TH Sarabun New`, Thai Distributed, and Proofing Language Thai.
+
+## Final Step: Deliver Downloadable `.docx` File (ขั้นตอนสุดท้าย — แสดงไฟล์ `.docx` ให้ดาวน์โหลดได้ทันที)
+
+Whenever code execution or file output tools are available:
+
+1. **Generate & verify**: Save the `.docx` file to the session output/workspace directory and confirm the file exists with a non-zero byte size (`> 0` bytes).
+2. **Present immediately at the end of your reply**: Display a prominent downloadable Microsoft Word (`.docx`) file link/card right in your final message, including:
+   - Exact filename and clickable download/file link (in Gemini Chat: surface the generated `.docx` download artifact/link directly; in Antigravity/local workspace: `[<filename>.docx](file:///<absolute_path>)`).
+   - File size in bytes/KB and a 1-line summary confirming `แบบที่ 1` numbering, `TH Sarabun New`, `3.0 / 2.0 cm` margins, and `thaiDistribute`.
 
 ## Self-Audit Checklist
 
@@ -92,3 +101,4 @@ For complete OpenXML tag snippets and the copy-ready inline `python-docx` helper
 4. Body prose uses `THAI_JUSTIFY` (`1.0 cm` indent under `1.`, `2.0 cm` indent under `1.1`+).
 5. No duplicate `\u200b\u200b`, no `\u200b` before `ๆ` / `ฯ`, and every table fits within printable width (`<= 16.0 cm`).
 6. Page numbers match the selected preset.
+7. The final Microsoft Word (`.docx`) file is generated, non-empty, and presented as a direct downloadable file/link to the user.

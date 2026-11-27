@@ -74,6 +74,9 @@ pip install -r requirements.txt
    ```bash
    python scripts/render_docx_to_png.py output.docx ./preview_png --dpi 150
    ```
+5. **Deliver the downloadable `.docx` file (Mandatory — ขั้นตอนสุดท้าย)**:
+   - Verify the saved `.docx` file exists with non-zero byte size (`> 0` bytes).
+   - Present a prominent, immediately clickable/downloadable Microsoft Word (`.docx`) file link at the end of your reply (e.g., `[<filename>.docx](file:///<absolute_path>)` in local/Antigravity workspaces, or the generated `.docx` download artifact/link in chat environments), along with its file size and audit summary (`ALL CHECKS PASSED`).
 
 ## CLI Usage
 
