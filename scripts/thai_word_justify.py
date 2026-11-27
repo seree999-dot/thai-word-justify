@@ -2,8 +2,8 @@
 """
 thai_word_justify.py — Library and CLI for Thai Microsoft Word (.docx)
 margins (กั้นหน้า-กั้นหลัง), thaiDistribute justification, w:bidi="th-TH",
-TH Sarabun New complex-script styling, Thai แบบที่ 1 heading numbering &
-cascading indentation, presets, page numbering, fixing, and auditing.
+TH Sarabun New complex-script styling, Thai แบบที่ 1 heading numbering,
+cascading hanging indents, presets, page numbering, fixing, and auditing.
 """
 
 import argparse
@@ -13,13 +13,14 @@ from pathlib import Path
 from pythainlp import word_tokenize
 from docx import Document
 from docx.shared import Pt, Cm, RGBColor
-from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_TAB_ALIGNMENT
 from docx.oxml import OxmlElement, parse_xml
 from docx.oxml.ns import nsdecls, qn
 
 ZWS = "\u200b"
 _THAI_RUN_RE = re.compile(r"([\u0E00-\u0E7F]+)")
 _ARABIC_TO_THAI = str.maketrans("0123456789", "๐๑๒๓๔๕๖๗๘๙")
+_TRAILING_DOT_SUBHEADING_RE = re.compile(r"^(\d+(?:\.\d+){1,3})\.\s+\S")
 
 TYPOGRAPHY_HIERARCHY: dict[str, dict] = {
     "title": {
@@ -31,6 +32,7 @@ TYPOGRAPHY_HIERARCHY: dict[str, dict] = {
         "italic": False,
         "align": "CENTER",
         "indent_cm": 0.0,
+        "hanging_cm": 0.0,
         "space_before_pt": 0.0,
         "space_after_pt": 8.0,
     },
@@ -43,6 +45,7 @@ TYPOGRAPHY_HIERARCHY: dict[str, dict] = {
         "italic": False,
         "align": "LEFT",
         "indent_cm": 0.0,
+        "hanging_cm": 0.65,
         "space_before_pt": 12.0,
         "space_after_pt": 4.0,
     },
@@ -55,6 +58,7 @@ TYPOGRAPHY_HIERARCHY: dict[str, dict] = {
         "italic": False,
         "align": "LEFT",
         "indent_cm": 1.0,
+        "hanging_cm": 0.80,
         "space_before_pt": 8.0,
         "space_after_pt": 3.0,
     },
@@ -67,6 +71,7 @@ TYPOGRAPHY_HIERARCHY: dict[str, dict] = {
         "italic": False,
         "align": "LEFT",
         "indent_cm": 1.8,
+        "hanging_cm": 1.00,
         "space_before_pt": 4.0,
         "space_after_pt": 2.0,
     },
@@ -79,6 +84,7 @@ TYPOGRAPHY_HIERARCHY: dict[str, dict] = {
         "italic": False,
         "align": "LEFT",
         "indent_cm": 2.8,
+        "hanging_cm": 1.20,
         "space_before_pt": 3.0,
         "space_after_pt": 2.0,
     },
@@ -91,6 +97,7 @@ TYPOGRAPHY_HIERARCHY: dict[str, dict] = {
         "italic": False,
         "align": "LEFT",
         "indent_cm": 4.0,
+        "hanging_cm": 0.65,
         "space_before_pt": 2.0,
         "space_after_pt": 2.0,
     },
@@ -114,7 +121,7 @@ PRESETS: dict[str, dict] = {
         "left": 3.0,
         "right": 2.0,
         "body_size_pt": 16.0,
-        "indent": None,  # Use context-aware 1.0 cm (under 1.) / 2.0 cm (under 1.1+)
+        "indent": None,
         "page_num_pos": "footer_center",
     },
     "official": {
@@ -154,17 +161,14 @@ def normalize_thai_heading_number(text: str) -> str:
         return text
     raw = text.replace(ZWS, "").lstrip()
 
-    # 4-part, 3-part, 2-part multi-level numbers: no trailing dot + 2 spaces
     m_multi = re.match(r"^(\d+(?:\.\d+){1,3})\.?\s+(.*)$", raw, flags=re.DOTALL)
     if m_multi:
         return f"{m_multi.group(1)}  {m_multi.group(2).lstrip()}"
 
-    # Level-4 parenthesis number: 1)  text
     m_paren = re.match(r"^(\d+\))\s+(.*)$", raw, flags=re.DOTALL)
     if m_paren:
         return f"{m_paren.group(1)}  {m_paren.group(2).lstrip()}"
 
-    # Level-1 number: 1.  text
     m_h1 = re.match(r"^(\d+)\.?\s+(.*)$", raw, flags=re.DOTALL)
     if m_h1:
         return f"{m_h1.group(1)}.  {m_h1.group(2).lstrip()}"
@@ -254,25 +258,38 @@ def set_thai_justify(paragraph):
     paragraph.alignment = WD_ALIGN_PARAGRAPH.THAI_JUSTIFY
 
 
+def _apply_heading_indentation(paragraph, indent_cm: float, hanging_cm: float):
+    """Apply cascading hanging indent and tab stop so multi-line headings align under title text."""
+    if hanging_cm > 0:
+        wrap_pos = round(indent_cm + hanging_cm, 2)
+        paragraph.paragraph_format.left_indent = Cm(wrap_pos)
+        paragraph.paragraph_format.first_line_indent = Cm(-hanging_cm)
+        paragraph.paragraph_format.tab_stops.add_tab_stop(Cm(wrap_pos), WD_TAB_ALIGNMENT.LEFT)
+    else:
+        paragraph.paragraph_format.left_indent = Cm(indent_cm) if indent_cm > 0 else Cm(0)
+        paragraph.paragraph_format.first_line_indent = Cm(0)
+
+
 def add_thai_heading(
     doc,
     text: str,
     level: str = "h1",
     size_pt: float | None = None,
     indent_cm: float | None = None,
+    hanging_cm: float | None = None,
     italic: bool | None = None,
     bold: bool | None = None,
     color_hex: str = "#202124",
     font_name: str = "TH Sarabun New",
 ):
     """
-    Add a Thai heading following Thai แบบที่ 1 numbering & typography hierarchy:
+    Add a Thai heading following แบบที่ 1 numbering, cascading indents, and hanging wraps:
     - title: 18-20 pt (default 20), bold, CENTER
-    - h1:    16-18 pt (default 18), bold, LEFT (0.0 cm), '1.  หัวข้อใหญ่'
-    - h2:    16 pt, bold, LEFT (1.0 cm), '1.1  หัวข้อย่อยระดับที่ 1' (no trailing dot)
-    - h3:    16 pt, regular/bold/italic, LEFT (1.8 cm), '1.1.1  หัวข้อย่อยระดับที่ 2'
-    - h4:    16 pt, regular/bold/italic, LEFT (2.8 cm), '1.1.2.1  หัวข้อย่อยระดับที่ 3'
-    - h5:    16 pt, regular/bold/italic, LEFT (4.0 cm), '1)  หัวข้อย่อยระดับที่ 4'
+    - h1:    16-18 pt (default 18), bold, start 0.0 cm, wrap 0.65 cm ('1.  หัวข้อใหญ่')
+    - h2:    16 pt, bold, start 1.0 cm, wrap 1.80 cm ('1.1  หัวข้อย่อยระดับที่ 1')
+    - h3:    16 pt, regular/bold/italic, start 1.8 cm, wrap 2.80 cm ('1.1.1  หัวข้อย่อยระดับที่ 2')
+    - h4:    16 pt, regular/bold/italic, start 2.8 cm, wrap 4.00 cm ('1.1.2.1  หัวข้อย่อยระดับที่ 3')
+    - h5:    16 pt, regular/bold/italic, start 4.0 cm, wrap 4.65 cm ('1)  หัวข้อย่อยระดับที่ 4')
     """
     lvl = level.lower()
     if lvl not in ("title", "h1", "h2", "h3", "h4", "h5"):
@@ -281,6 +298,7 @@ def add_thai_heading(
 
     eff_size = cfg["size_pt"] if size_pt is None else float(size_pt)
     eff_indent = cfg["indent_cm"] if indent_cm is None else float(indent_cm)
+    eff_hanging = cfg["hanging_cm"] if hanging_cm is None else float(hanging_cm)
     eff_italic = cfg["italic"] if italic is None else bool(italic)
     eff_bold = cfg["bold"] if bold is None else bool(bold)
 
@@ -292,8 +310,7 @@ def add_thai_heading(
     p.paragraph_format.line_spacing = 1.15
     p.paragraph_format.space_before = Pt(cfg["space_before_pt"])
     p.paragraph_format.space_after = Pt(cfg["space_after_pt"])
-    if eff_indent > 0:
-        p.paragraph_format.left_indent = Cm(eff_indent)
+    _apply_heading_indentation(p, eff_indent, eff_hanging)
 
     run = p.add_run(insert_thai_zwsp_clean(formatted_text))
     apply_thai_run_style(
@@ -537,7 +554,7 @@ def fix_existing_docx(
 ) -> Path:
     """
     Upgrade an existing .docx file with Thai A4 margins, thaiDistribute alignment
-    on body prose, แบบที่ 1 heading numbering & cascading indents (1. / 1.1 / 1.1.1 / 1.1.2.1 / 1)),
+    on body prose, แบบที่ 1 heading numbering & hanging indents (1. / 1.1 / 1.1.1 / 1.1.2.1 / 1)),
     context-aware 1.0/2.0 cm body indents, w:bidi='th-TH', TH Sarabun New complex script fonts,
     clean ZWS, and fixed-width tables.
     """
@@ -577,8 +594,7 @@ def fix_existing_docx(
             p.alignment = WD_ALIGN_PARAGRAPH.CENTER if h_cfg["align"] == "CENTER" else WD_ALIGN_PARAGRAPH.LEFT
             p.paragraph_format.keep_with_next = True
             p.paragraph_format.line_spacing = 1.15
-            p.paragraph_format.first_line_indent = Cm(0)
-            p.paragraph_format.left_indent = Cm(h_cfg["indent_cm"]) if h_cfg["indent_cm"] > 0 else Cm(0)
+            _apply_heading_indentation(p, h_cfg["indent_cm"], h_cfg["hanging_cm"])
         elif not is_centered and len(raw_text) >= 40:
             set_thai_justify(p)
             p.paragraph_format.line_spacing = 1.15
@@ -696,7 +712,7 @@ def fix_existing_docx(
 
 
 def check_docx(docx_path: str | Path) -> tuple[bool, list[str]]:
-    """Audit a .docx file against Thai Word justification, margins, and table widths."""
+    """Audit a .docx file against Thai Word justification, แบบที่ 1 numbering, margins & table widths."""
     doc = Document(str(docx_path))
     sec = doc.sections[0]
     issues: list[str] = []
@@ -762,8 +778,13 @@ def check_docx(docx_path: str | Path) -> tuple[bool, list[str]]:
     zws_paras = 0
     double_zws = 0
     thai_paras = 0
+    trailing_dot_headings: list[str] = []
 
     for p in doc.paragraphs:
+        clean_p = p.text.replace(ZWS, "").strip()
+        if _TRAILING_DOT_SUBHEADING_RE.match(clean_p) and len(clean_p) < 120:
+            trailing_dot_headings.append(clean_p[:40])
+
         if _THAI_RUN_RE.search(p.text):
             thai_paras += 1
             if ZWS in p.text:
@@ -788,6 +809,11 @@ def check_docx(docx_path: str | Path) -> tuple[bool, list[str]]:
         issues.append("Thai paragraphs contain no Zero-Width Space (U+200B) word-break cues")
     if double_zws > 0:
         issues.append(f"Found {double_zws} paragraph(s) with duplicate ZWS (\\u200b\\u200b)")
+    if trailing_dot_headings:
+        issues.append(
+            f"Found {len(trailing_dot_headings)} แบบที่ 1 subheading(s) with trailing dot "
+            f"(e.g., '{trailing_dot_headings[0]}' — remove trailing dot on 1.1 / 1.1.1 / 1.1.2.1)"
+        )
 
     report = [
         f"File: {docx_path}",
@@ -821,7 +847,7 @@ def main():
     p_fix.add_argument("--footer", default=None, help="Optional footer text with dynamic page numbers")
     p_fix.add_argument("--thai-numerals", action="store_true", help="Convert digits to Thai numerals (๐-๙)")
 
-    p_check = sub.add_parser("check", help="Audit an existing .docx for Thai justification, margins & table overflow")
+    p_check = sub.add_parser("check", help="Audit an existing .docx for Thai justification, แบบที่ 1 numbering, margins & table overflow")
     p_check.add_argument("input", help="Input .docx path")
 
     args = parser.parse_args()

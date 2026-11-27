@@ -15,16 +15,16 @@ Format Thai Microsoft Word (`.docx`) documents so left and right margins (กั
 
 ## ระบบเลขหัวข้อและการเยื้องมาตรฐานไทย (แบบที่ 1)
 
-| ระดับ (Level) | รูปแบบตัวเลข (Numbering) | ขนาด / น้ำหนัก | ระยะเยื้อง (`left_indent`) | กฎสำคัญ |
+| ระดับ (Level) | รูปแบบตัวเลข (Numbering) | ขนาด / น้ำหนัก | จุดเริ่ม / Hanging Wrap | กฎสำคัญ |
 | :--- | :--- | :--- | :--- | :--- |
 | `title` (ชื่อเรื่อง / ชื่อบท) | เช่น `แบบที่ 1` / `บทที่ 1` | `18–20 pt` *(ค่าเริ่มต้น 20 pt)* **Bold** | กึ่งกลาง (`CENTER`) | ไม่มีเลขข้อปิดท้าย |
-| `h1` (หัวข้อใหญ่) | `1.  หัวข้อใหญ่`, `2.  หัวข้อใหญ่` | `16–18 pt` *(ค่าเริ่มต้น 18 pt)* **Bold** | `0.0 cm` (ชิดขอบซ้าย) | **มีจุดหลังตัวเลข** + เว้น **2 เคาะ** |
+| `h1` (หัวข้อใหญ่) | `1.  หัวข้อใหญ่`, `2.  หัวข้อใหญ่` | `16–18 pt` *(ค่าเริ่มต้น 18 pt)* **Bold** | `0.0 cm` / wrap `0.65 cm` | **มีจุดหลังตัวเลข** + เว้น **2 เคาะ** + Hanging Indent |
 | ย่อหน้าใต้ `1.` | ย่อหน้าแรก `1.0 cm` (5 เคาะ) | `16 pt` Regular | `left=0 cm`, `first_line=1.0 cm` | บรรทัดแรกตรงแนว `1.1`, บรรทัดถัดไปชิดซ้าย (`THAI_JUSTIFY`) |
-| `h2` (หัวข้อย่อยระดับที่ 1) | `1.1  หัวข้อย่อยระดับที่ 1`, `1.2` | `16 pt` **Bold** | `1.0 cm` (5 เคาะ) | **ไม่มีจุดปิดท้าย** + เว้น **2 เคาะ** |
+| `h2` (หัวข้อย่อยระดับที่ 1) | `1.1  หัวข้อย่อยระดับที่ 1`, `1.2` | `16 pt` **Bold** | `1.0 cm` / wrap `1.80 cm` | **ไม่มีจุดปิดท้าย** + เว้น **2 เคาะ** + Hanging Indent |
 | ย่อหน้าใต้ `1.1`+ | ย่อหน้าแรก `2.0 cm` (10 เคาะ) | `16 pt` Regular | `left=0 cm`, `first_line=2.0 cm` | บรรทัดแรกเยื้องลึกจาก `1.1`, บรรทัดถัดไปชิดซ้าย (`THAI_JUSTIFY`) |
-| `h3` (หัวข้อย่อยระดับที่ 2) | `1.1.1  หัวข้อย่อยระดับที่ 2` | `16 pt` Regular *(หรือ Bold/Italic)* | `1.8 cm` (ตรงอักษรแรกของ `1.1`) | **ไม่มีจุดปิดท้าย** + เว้น **2 เคาะ** |
-| `h4` (หัวข้อย่อยระดับที่ 3) | `1.1.2.1  หัวข้อย่อยระดับที่ 3` | `16 pt` Regular | `2.8 cm` (ตรงอักษรแรกของ `1.1.1`) | **ไม่มีจุดปิดท้าย** + เว้น **2 เคาะ** |
-| `h5` (หัวข้อย่อยระดับที่ 4) | `1)  หัวข้อย่อยระดับที่ 4`, `2)` | `16 pt` Regular | `4.0 cm` (ตรงอักษรแรกของ `1.1.2.1`) | **ใช้วงเล็บปิด `)` ไม่มีจุด** + เว้น **2 เคาะ** |
+| `h3` (หัวข้อย่อยระดับที่ 2) | `1.1.1  หัวข้อย่อยระดับที่ 2` | `16 pt` Regular *(หรือ Bold/Italic)* | `1.8 cm` / wrap `2.80 cm` | **ไม่มีจุดปิดท้าย** + เว้น **2 เคาะ** + Hanging Indent |
+| `h4` (หัวข้อย่อยระดับที่ 3) | `1.1.2.1  หัวข้อย่อยระดับที่ 3` | `16 pt` Regular | `2.8 cm` / wrap `4.00 cm` | **ไม่มีจุดปิดท้าย** + เว้น **2 เคาะ** + Hanging Indent |
+| `h5` (หัวข้อย่อยระดับที่ 4) | `1)  หัวข้อย่อยระดับที่ 4`, `2)` | `16 pt` Regular | `4.0 cm` / wrap `4.65 cm` | **ใช้วงเล็บปิด `)` ไม่มีจุด** + เว้น **2 เคาะ** + Hanging Indent |
 
 ```text
                        แบบที่ 1 (CENTER, Bold)
@@ -67,7 +67,7 @@ Format Thai Microsoft Word (`.docx`) documents so left and right margins (กั
 3. **Numbering, Alignment & Indentation Strategy**:
    - **Title / Chapter headings**: `WD_ALIGN_PARAGRAPH.CENTER`, Bold, `18–20 pt`, `keep_with_next = True`.
    - **Numbering punctuation & spacing**: Level 1 uses a dot (`1.  `), multi-level headings (`1.1  `, `1.1.1  `, `1.1.2.1  `) omit any trailing dot, and level-4 sub-items use a closing parenthesis (`1)  `). Place exactly **2 spaces** between the number and heading title.
-   - **Cascading indents**: `h1` at `0.0 cm`, `h2` at `1.0 cm`, `h3` at `1.8 cm`, `h4` at `2.8 cm`, `h5` at `4.0 cm`.
+   - **Cascading indents with Hanging Wrap**: `h1` starts at `0.0 cm` (wraps at `0.65 cm`), `h2` starts at `1.0 cm` (wraps at `1.80 cm`), `h3` starts at `1.8 cm` (wraps at `2.80 cm`), `h4` starts at `2.8 cm` (wraps at `4.00 cm`), `h5` starts at `4.0 cm` (wraps at `4.65 cm`) using `left_indent = start + hang` and `first_line_indent = -hang`.
    - **Body prose**: Thai Distributed (`WD_ALIGN_PARAGRAPH.THAI_JUSTIFY` / `<w:jc w:val="thaiDistribute"/>`), `line_spacing = 1.15`, `left_indent = 0`, `first_line_indent = 1.0 cm` under `1.` (5 spaces) or `2.0 cm` under `1.1`+ (10 spaces).
    - **Narrow table cells**: Use `WD_ALIGN_PARAGRAPH.LEFT` (`<w:jc w:val="left"/>`).
 

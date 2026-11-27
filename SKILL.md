@@ -24,16 +24,16 @@ pip install -r requirements.txt
 
 ## ระบบเลขหัวข้อและการเยื้องมาตรฐานไทย (แบบที่ 1)
 
-| ระดับ (Level) | รูปแบบตัวเลข (Numbering) | ขนาด / น้ำหนัก | ระยะเยื้อง (`left_indent`) | กฎสำคัญ |
+| ระดับ (Level) | รูปแบบตัวเลข (Numbering) | ขนาด / น้ำหนัก | จุดเริ่ม / Hanging Wrap | กฎสำคัญ |
 | :--- | :--- | :--- | :--- | :--- |
 | `title` (ชื่อเรื่อง / ชื่อบท) | เช่น `แบบที่ 1` / `บทที่ 1` | `18–20 pt` *(ค่าเริ่มต้น 20 pt)* **Bold** | กึ่งกลาง (`CENTER`) | ไม่มีเลขข้อปิดท้าย |
-| `h1` (หัวข้อใหญ่) | `1.  หัวข้อใหญ่`, `2.  หัวข้อใหญ่` | `16–18 pt` *(ค่าเริ่มต้น 18 pt)* **Bold** | `0.0 cm` (ชิดขอบซ้าย) | **มีจุดหลังตัวเลข** + เว้น **2 เคาะ** |
+| `h1` (หัวข้อใหญ่) | `1.  หัวข้อใหญ่`, `2.  หัวข้อใหญ่` | `16–18 pt` *(ค่าเริ่มต้น 18 pt)* **Bold** | `0.0 cm` / wrap `0.65 cm` | **มีจุดหลังตัวเลข** + เว้น **2 เคาะ** + Hanging Indent |
 | ย่อหน้าใต้ `1.` | ย่อหน้าแรก `1.0 cm` (5 เคาะ) | `16 pt` Regular | `left=0 cm`, `first_line=1.0 cm` | บรรทัดแรกตรงแนว `1.1`, บรรทัดถัดไปชิดซ้าย (`THAI_JUSTIFY`) |
-| `h2` (หัวข้อย่อยระดับที่ 1) | `1.1  หัวข้อย่อยระดับที่ 1`, `1.2` | `16 pt` **Bold** | `1.0 cm` (5 เคาะ) | **ไม่มีจุดปิดท้าย** + เว้น **2 เคาะ** |
+| `h2` (หัวข้อย่อยระดับที่ 1) | `1.1  หัวข้อย่อยระดับที่ 1`, `1.2` | `16 pt` **Bold** | `1.0 cm` / wrap `1.80 cm` | **ไม่มีจุดปิดท้าย** + เว้น **2 เคาะ** + Hanging Indent |
 | ย่อหน้าใต้ `1.1`+ | ย่อหน้าแรก `2.0 cm` (10 เคาะ) | `16 pt` Regular | `left=0 cm`, `first_line=2.0 cm` | บรรทัดแรกเยื้องลึกจาก `1.1`, บรรทัดถัดไปชิดซ้าย (`THAI_JUSTIFY`) |
-| `h3` (หัวข้อย่อยระดับที่ 2) | `1.1.1  หัวข้อย่อยระดับที่ 2` | `16 pt` Regular *(หรือ Bold/Italic)* | `1.8 cm` (ตรงอักษรแรกของ `1.1`) | **ไม่มีจุดปิดท้าย** + เว้น **2 เคาะ** |
-| `h4` (หัวข้อย่อยระดับที่ 3) | `1.1.2.1  หัวข้อย่อยระดับที่ 3` | `16 pt` Regular | `2.8 cm` (ตรงอักษรแรกของ `1.1.1`) | **ไม่มีจุดปิดท้าย** + เว้น **2 เคาะ** |
-| `h5` (หัวข้อย่อยระดับที่ 4) | `1)  หัวข้อย่อยระดับที่ 4`, `2)` | `16 pt` Regular | `4.0 cm` (ตรงอักษรแรกของ `1.1.2.1`) | **ใช้วงเล็บปิด `)` ไม่มีจุด** + เว้น **2 เคาะ** |
+| `h3` (หัวข้อย่อยระดับที่ 2) | `1.1.1  หัวข้อย่อยระดับที่ 2` | `16 pt` Regular *(หรือ Bold/Italic)* | `1.8 cm` / wrap `2.80 cm` | **ไม่มีจุดปิดท้าย** + เว้น **2 เคาะ** + Hanging Indent |
+| `h4` (หัวข้อย่อยระดับที่ 3) | `1.1.2.1  หัวข้อย่อยระดับที่ 3` | `16 pt` Regular | `2.8 cm` / wrap `4.00 cm` | **ไม่มีจุดปิดท้าย** + เว้น **2 เคาะ** + Hanging Indent |
+| `h5` (หัวข้อย่อยระดับที่ 4) | `1)  หัวข้อย่อยระดับที่ 4`, `2)` | `16 pt` Regular | `4.0 cm` / wrap `4.65 cm` | **ใช้วงเล็บปิด `)` ไม่มีจุด** + เว้น **2 เคาะ** + Hanging Indent |
 
 ```text
                        แบบที่ 1 (CENTER, Bold)
@@ -67,7 +67,7 @@ pip install -r requirements.txt
    - Headings: use `add_thai_heading(doc, text, level="title"|"h1"|"h2"|"h3"|"h4"|"h5")` (normalizes numbering via `normalize_thai_heading_number()`, strips trailing dots on `1.1` / `1.1.1` / `1.1.2.1`, enforces 2 spaces and cascading indents).
    - Body prose: use `add_thai_body(doc, text, under_level="h1"|"h2")` for `THAI_JUSTIFY` + `insert_thai_zwsp_clean()` + `1.0 cm` / `2.0 cm` first-line indent.
    - Tables: keep cell paragraphs `LEFT`, fixed layout (`w:tblLayout="fixed"`) matching printable width (`16.0 cm` or `14.65 cm`), `w:tblHeader`, and `w:cantSplit`. See [ooxml-thai-guide.md](./references/ooxml-thai-guide.md).
-3. **Run programmatic audit** (must exit `0`):
+3. **Run programmatic audit** (verifies A4 geometry, margins, `THAI_JUSTIFY`, `w:bidi="th-TH"`, ZWS, แบบที่ 1 trailing-dot rule, and table width overflow — must exit `0`):
    ```bash
    python scripts/thai_word_justify.py check output.docx
    ```

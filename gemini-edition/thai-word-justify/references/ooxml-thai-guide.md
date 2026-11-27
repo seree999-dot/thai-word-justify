@@ -98,12 +98,14 @@ def norm_num(text):
     return re.sub(r"^(\d+)\.?\s+", r"\1.  ", t)
 
 def add_thai_heading(doc, text, level="h1", bold=None, italic=False, font="TH Sarabun New"):
-    specs = {"title": (20, True, "CENTER", 0.0), "h1": (18, True, "LEFT", 0.0), "h2": (16, True, "LEFT", 1.0), "h3": (16, False, "LEFT", 1.8), "h4": (16, False, "LEFT", 2.8), "h5": (16, False, "LEFT", 4.0)}
-    sz, b, align, ind = specs[level]
+    specs = {"title": (20, True, "CENTER", 0.0, 0.0), "h1": (18, True, "LEFT", 0.0, 0.65), "h2": (16, True, "LEFT", 1.0, 0.80), "h3": (16, False, "LEFT", 1.8, 1.00), "h4": (16, False, "LEFT", 2.8, 1.20), "h5": (16, False, "LEFT", 4.0, 0.65)}
+    sz, b, align, ind, hang = specs[level]
     p = doc.add_paragraph()
     p.alignment = WD_ALIGN_PARAGRAPH.CENTER if align == "CENTER" else WD_ALIGN_PARAGRAPH.LEFT
     p.paragraph_format.keep_with_next = True
-    p.paragraph_format.left_indent = Cm(ind)
+    p.paragraph_format.left_indent = Cm(round(ind + hang, 2))
+    if hang > 0:
+        p.paragraph_format.first_line_indent = Cm(-hang)
     txt = text if level == "title" else norm_num(text)
     _style_run(p.add_run(txt), size=sz, bold=(b if bold is None else bold), italic=italic, font=font)
     return p
