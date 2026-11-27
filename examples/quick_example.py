@@ -1,28 +1,21 @@
 #!/usr/bin/env python3
 """
-Minimal standalone example creating a publication-grade Thai A4 .docx
-demonstrating the Thai Typography Hierarchy (Title / H1 / H2 / H3 / Body)
-and 16.0 cm table with thai-word-justify.
+Minimal standalone example creating a Thai A4 .docx replicating the
+Thai แบบที่ 1 heading numbering, cascading indents, and body prose indents.
 """
 
 import sys
 from pathlib import Path
 from docx import Document
-from docx.shared import Pt, Cm
-from docx.enum.text import WD_ALIGN_PARAGRAPH
-from docx.oxml import OxmlElement, parse_xml
-from docx.oxml.ns import nsdecls
 
 SKILL_SCRIPTS = Path(__file__).resolve().parent.parent / "scripts"
 sys.path.insert(0, str(SKILL_SCRIPTS))
 
 from thai_word_justify import (  # noqa: E402
+    add_thai_body,
     add_thai_heading,
     add_thai_page_number_footer,
-    apply_thai_run_style,
     configure_thai_a4_margins,
-    insert_thai_zwsp_clean,
-    set_thai_justify,
 )
 
 
@@ -30,50 +23,46 @@ def main():
     out_path = Path(sys.argv[1]) if len(sys.argv) > 1 else Path("sample_thai_proposal.docx")
     doc = Document()
 
-    content_width_cm = configure_thai_a4_margins(
+    configure_thai_a4_margins(
         doc, top=2.5, bottom=2.0, left=3.0, right=2.0, font_name="TH Sarabun New", body_size_pt=16
     )
-    add_thai_page_number_footer(doc.sections[0], footer_text="เอกสารตัวอย่างภาษาไทย (TH Sarabun New)")
+    add_thai_page_number_footer(doc.sections[0], footer_text="ตัวอย่างการจัดหัวข้อภาษาไทย (แบบที่ 1)")
 
-    add_thai_heading(doc, "ข้อเสนอโครงการพัฒนาระบบติดตามการฝึกงาน", level="title", color_hex="#1E2761")
-    add_thai_heading(doc, "1. ความเป็นมาและความสำคัญ", level="h1", color_hex="#1E2761")
-    add_thai_heading(doc, "1.1 วัตถุประสงค์ของโครงการ", level="h2", color_hex="#1E2761")
-    add_thai_heading(doc, "1.1.1 ด้านงบประมาณและทรัพยากร", level="h3", italic=False, color_hex="#1E2761")
+    add_thai_heading(doc, "แบบที่ 1", level="title")
 
-    body_text = (
-        "การจัดทำเอกสารภาษาไทยใน Microsoft Word จำเป็นต้องตั้งค่าระยะขอบมาตรฐานเอสี่ "
-        "กั้นหน้าสามเซนติเมตร กั้นหลังสองเซนติเมตร และใช้การจัดแนวแบบกระจายแบบไทย "
-        "(thaiDistribute) ร่วมกับการแทรกตัวคั่นคำที่มองไม่เห็นและการระบุภาษาไทยระดับโครงสร้าง "
-        "เพื่อให้ขอบด้านซ้ายและด้านขวาเรียบเสมอกันทุกบรรทัดโดยไม่ดึงตัวอักษรให้ถ่างผิดปกติ"
+    add_thai_heading(doc, "1.  หัวข้อใหญ่", level="h1")
+    add_thai_body(
+        doc,
+        "ย่อหน้าแรกใต้หัวข้อใหญ่ระดับที่ 1 ใช้ระยะเยื้องบรรทัดแรก 1.0 เซนติเมตร (5 เคาะ) ให้ตรงแนวกับหัวข้อย่อย 1.1 "
+        "และจัดแนวแบบกั้นหน้ากั้นหลังภาษาไทย (thaiDistribute) เพื่อให้ขอบซ้ายและขอบขวาเสมอกันทุกบรรทัด",
+        under_level="h1",
     )
-    p = doc.add_paragraph()
-    set_thai_justify(p)
-    p.paragraph_format.first_line_indent = Cm(1.25)
-    p.paragraph_format.space_after = Pt(8)
-    apply_thai_run_style(p.add_run(insert_thai_zwsp_clean(body_text)), size_pt=16)
 
-    widths = [4.0, 6.0, content_width_cm - 10.0]
-    table = doc.add_table(rows=2, cols=3)
-    table.autofit = False
-    tblPr = table._tbl.tblPr
-    tblPr.append(parse_xml(f'<w:tblW {nsdecls("w")} w:w="{int(round(content_width_cm * 567))}" w:type="dxa"/>'))
-    tblPr.append(parse_xml(f'<w:tblLayout {nsdecls("w")} w:type="fixed"/>'))
+    add_thai_heading(doc, "1.1  หัวข้อย่อยระดับที่ 1", level="h2")
+    add_thai_body(
+        doc,
+        "ย่อหน้าใต้หัวข้อย่อยระดับที่ 1 ใช้ระยะเยื้องบรรทัดแรก 2.0 เซนติเมตร (10 เคาะ) เยื้องลึกเข้าไปจากแนวหัวข้อ 1.1 "
+        "โดยบรรทัดถัดไปของย่อหน้าชิดขอบซ้ายและจัดแนวแบบกั้นหน้ากั้นหลังอย่างเรียบร้อย",
+        under_level="h2",
+    )
 
-    rows_data = [
-        ["รายการ", "ค่ามาตรฐาน", "หมายเหตุ"],
-        ["ระยะขอบซ้าย / ขวา", "3.0 ซม. / 2.0 ซม.", "พื้นที่เนื้อหาสุทธิ 16.0 ซม."],
-    ]
-    for r_idx, row_vals in enumerate(rows_data):
-        row = table.rows[r_idx]
-        row._tr.get_or_add_trPr().append(OxmlElement("w:cantSplit"))
-        if r_idx == 0:
-            row._tr.get_or_add_trPr().append(OxmlElement("w:tblHeader"))
-        for c_idx, val in enumerate(row_vals):
-            cell = row.cells[c_idx]
-            cell.width = Cm(widths[c_idx])
-            cp = cell.paragraphs[0]
-            cp.alignment = WD_ALIGN_PARAGRAPH.LEFT
-            apply_thai_run_style(cp.add_run(insert_thai_zwsp_clean(val)), size_pt=14, bold=(r_idx == 0))
+    add_thai_heading(doc, "1.1.1  หัวข้อย่อยระดับที่ 2", level="h3")
+    add_thai_heading(doc, "1.1.2  หัวข้อย่อยระดับที่ 2", level="h3")
+    add_thai_heading(doc, "1.1.2.1  หัวข้อย่อยระดับที่ 3", level="h4")
+    add_thai_heading(doc, "1)  หัวข้อย่อยระดับที่ 4", level="h5")
+    add_thai_heading(doc, "2)  หัวข้อย่อยระดับที่ 4", level="h5")
+    add_thai_heading(doc, "1.1.2.2  หัวข้อย่อยระดับที่ 3", level="h4")
+    add_thai_heading(doc, "1.1.3  หัวข้อย่อยระดับที่ 2", level="h3")
+    add_thai_heading(doc, "1.2  หัวข้อย่อยระดับที่ 1", level="h2")
+
+    add_thai_heading(doc, "2.  หัวข้อใหญ่", level="h1")
+    add_thai_heading(doc, "2.1  หัวข้อย่อยระดับที่ 1", level="h2")
+    add_thai_heading(doc, "2.1.1  หัวข้อย่อยระดับที่ 2", level="h3")
+    add_thai_heading(doc, "2.1.1.1  หัวข้อย่อยระดับที่ 3", level="h4")
+    add_thai_heading(doc, "2.2  หัวข้อย่อยระดับที่ 1", level="h2")
+    add_thai_heading(doc, "2.3  หัวข้อย่อยระดับที่ 1", level="h2")
+
+    add_thai_heading(doc, "3.  หัวข้อใหญ่", level="h1")
 
     out_path.parent.mkdir(parents=True, exist_ok=True)
     doc.save(str(out_path))

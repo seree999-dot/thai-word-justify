@@ -29,6 +29,13 @@ class TestThaiWordJustify(unittest.TestCase):
     def test_to_thai_numerals(self):
         self.assertEqual(twj.to_thai_numerals("หน้า 12 / 34"), "หน้า ๑๒ / ๓๔")
 
+    def test_normalize_thai_heading_number(self):
+        self.assertEqual(twj.normalize_thai_heading_number("1. หัวข้อใหญ่"), "1.  หัวข้อใหญ่")
+        self.assertEqual(twj.normalize_thai_heading_number("1.1. หัวข้อย่อยระดับที่ 1"), "1.1  หัวข้อย่อยระดับที่ 1")
+        self.assertEqual(twj.normalize_thai_heading_number("1.1.1. หัวข้อย่อยระดับที่ 2"), "1.1.1  หัวข้อย่อยระดับที่ 2")
+        self.assertEqual(twj.normalize_thai_heading_number("1.1.2.1. หัวข้อย่อยระดับที่ 3"), "1.1.2.1  หัวข้อย่อยระดับที่ 3")
+        self.assertEqual(twj.normalize_thai_heading_number("1) หัวข้อย่อยระดับที่ 4"), "1)  หัวข้อย่อยระดับที่ 4")
+
     def test_presets_geometry(self):
         doc = Document()
         self.assertEqual(
@@ -55,47 +62,70 @@ class TestThaiWordJustify(unittest.TestCase):
     def test_heading_hierarchy_levels(self):
         doc = Document()
         twj.configure_thai_a4_margins(doc)
-        p_t = twj.add_thai_heading(doc, "ข้อเสนอโครงการ", level="title")
-        p_1 = twj.add_thai_heading(doc, "1. ความเป็นมา", level="h1")
-        p_2 = twj.add_thai_heading(doc, "1.1 วัตถุประสงค์", level="h2")
-        p_3 = twj.add_thai_heading(doc, "1.1.1 ด้านงบประมาณ", level="h3", italic=True)
+        p_t = twj.add_thai_heading(doc, "แบบที่ 1", level="title")
+        p_1 = twj.add_thai_heading(doc, "1. หัวข้อใหญ่", level="h1")
+        p_b1 = twj.add_thai_body(doc, "ย่อหน้าแรกใต้หัวข้อใหญ่ที่มีความยาวเพียงพอ", under_level="h1")
+        p_2 = twj.add_thai_heading(doc, "1.1. หัวข้อย่อยระดับที่ 1", level="h2")
+        p_b2 = twj.add_thai_body(doc, "ย่อหน้าใต้หัวข้อย่อยระดับที่ 1 ที่เยื้องสิบเคาะ", under_level="h2")
+        p_3 = twj.add_thai_heading(doc, "1.1.1. หัวข้อย่อยระดับที่ 2", level="h3")
+        p_4 = twj.add_thai_heading(doc, "1.1.2.1. หัวข้อย่อยระดับที่ 3", level="h4")
+        p_5 = twj.add_thai_heading(doc, "1) หัวข้อย่อยระดับที่ 4", level="h5")
 
         self.assertEqual(p_t.alignment, WD_ALIGN_PARAGRAPH.CENTER)
         self.assertEqual(p_t.runs[0].font.size.pt, 20.0)
         self.assertTrue(p_t.runs[0].bold)
 
-        self.assertEqual(p_1.alignment, WD_ALIGN_PARAGRAPH.LEFT)
         self.assertEqual(p_1.runs[0].font.size.pt, 18.0)
-        self.assertIsNone(p_1.paragraph_format.left_indent)
+        self.assertTrue(p_1.text.startswith("1.  "))
+        self.assertAlmostEqual(p_b1.paragraph_format.first_line_indent.cm, 1.0, places=2)
 
-        self.assertEqual(p_2.alignment, WD_ALIGN_PARAGRAPH.LEFT)
         self.assertEqual(p_2.runs[0].font.size.pt, 16.0)
-        self.assertAlmostEqual(p_2.paragraph_format.left_indent.cm, 0.75, places=2)
+        self.assertTrue(p_2.runs[0].bold)
+        self.assertTrue(p_2.text.startswith("1.1  "))
+        self.assertAlmostEqual(p_2.paragraph_format.left_indent.cm, 1.0, places=2)
+        self.assertAlmostEqual(p_b2.paragraph_format.first_line_indent.cm, 2.0, places=2)
 
-        self.assertEqual(p_3.alignment, WD_ALIGN_PARAGRAPH.LEFT)
         self.assertEqual(p_3.runs[0].font.size.pt, 16.0)
-        self.assertTrue(p_3.runs[0].italic)
-        self.assertAlmostEqual(p_3.paragraph_format.left_indent.cm, 1.5, places=2)
+        self.assertTrue(p_3.text.startswith("1.1.1  "))
+        self.assertAlmostEqual(p_3.paragraph_format.left_indent.cm, 1.8, places=2)
+
+        self.assertEqual(p_4.runs[0].font.size.pt, 16.0)
+        self.assertTrue(p_4.text.startswith("1.1.2.1  "))
+        self.assertAlmostEqual(p_4.paragraph_format.left_indent.cm, 2.8, places=2)
+
+        self.assertEqual(p_5.runs[0].font.size.pt, 16.0)
+        self.assertTrue(p_5.text.startswith("1)  "))
+        self.assertAlmostEqual(p_5.paragraph_format.left_indent.cm, 4.0, places=2)
 
         with tempfile.TemporaryDirectory() as tmp:
             raw_path = Path(tmp) / "raw_h.docx"
             fixed_path = Path(tmp) / "fixed_h.docx"
             d2 = Document()
-            d2.add_paragraph("บทที่ 1 บทนำ")
-            d2.add_paragraph("1. ความเป็นมา")
-            d2.add_paragraph("1.1 วัตถุประสงค์")
-            d2.add_paragraph("1.1.1 ด้านงบประมาณ")
-            d2.add_paragraph("เนื้อหาปกติที่มีความยาวเพียงพอสำหรับการจัดแนวแบบกั้นหน้าและกั้นหลังให้สวยงาม")
+            d2.add_paragraph("แบบที่ 1")
+            d2.add_paragraph("1. หัวข้อใหญ่")
+            d2.add_paragraph("เนื้อหาใต้หัวข้อใหญ่ที่มีความยาวเพียงพอสำหรับการจัดแนวแบบกั้นหน้าและกั้นหลังให้สวยงาม")
+            d2.add_paragraph("1.1. หัวข้อย่อยระดับที่ 1")
+            d2.add_paragraph("เนื้อหาใต้หัวข้อย่อยที่มีความยาวเพียงพอสำหรับการจัดแนวแบบกั้นหน้าและกั้นหลังให้สวยงาม")
+            d2.add_paragraph("1.1.1. หัวข้อย่อยระดับที่ 2")
+            d2.add_paragraph("1.1.2.1. หัวข้อย่อยระดับที่ 3")
+            d2.add_paragraph("1) หัวข้อย่อยระดับที่ 4")
             d2.save(str(raw_path))
+
             twj.fix_existing_docx(raw_path, fixed_path)
             df = Document(str(fixed_path))
             self.assertEqual(df.paragraphs[0].alignment, WD_ALIGN_PARAGRAPH.CENTER)
             self.assertEqual(df.paragraphs[0].runs[0].font.size.pt, 20.0)
-            self.assertEqual(df.paragraphs[1].runs[0].font.size.pt, 18.0)
-            self.assertEqual(df.paragraphs[2].runs[0].font.size.pt, 16.0)
-            self.assertAlmostEqual(df.paragraphs[2].paragraph_format.left_indent.cm, 0.75, places=2)
-            self.assertEqual(df.paragraphs[3].runs[0].font.size.pt, 16.0)
-            self.assertAlmostEqual(df.paragraphs[3].paragraph_format.left_indent.cm, 1.5, places=2)
+            self.assertTrue(df.paragraphs[1].text.startswith("1.  "))
+            self.assertAlmostEqual(df.paragraphs[2].paragraph_format.first_line_indent.cm, 1.0, places=2)
+            self.assertTrue(df.paragraphs[3].text.startswith("1.1  "))
+            self.assertAlmostEqual(df.paragraphs[3].paragraph_format.left_indent.cm, 1.0, places=2)
+            self.assertAlmostEqual(df.paragraphs[4].paragraph_format.first_line_indent.cm, 2.0, places=2)
+            self.assertTrue(df.paragraphs[5].text.startswith("1.1.1  "))
+            self.assertAlmostEqual(df.paragraphs[5].paragraph_format.left_indent.cm, 1.8, places=2)
+            self.assertTrue(df.paragraphs[6].text.startswith("1.1.2.1  "))
+            self.assertAlmostEqual(df.paragraphs[6].paragraph_format.left_indent.cm, 2.8, places=2)
+            self.assertTrue(df.paragraphs[7].text.startswith("1)  "))
+            self.assertAlmostEqual(df.paragraphs[7].paragraph_format.left_indent.cm, 4.0, places=2)
 
     def test_fix_and_check_pass(self):
         with tempfile.TemporaryDirectory() as tmp:
